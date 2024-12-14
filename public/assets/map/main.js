@@ -1,55 +1,55 @@
-$.ajaxSetup({ async: false });
+// $.ajaxSetup({ async: false });
 
-let countrySort = {}, countrySortPool = {}, cunliListPool = {};
-$.getJSON('fia_data.json', function (data) {
-  cunliSalary = data;
-  for (cunliCode in cunliSalary) {
-    countrySort[cunliCode] = {
-      name: ''
-    };
-    for (year in cunliSalary[cunliCode]) {
-      countrySort[cunliCode][year] = {};
-      if (!countrySortPool[year]) {
-        countrySortPool[year] = {};
-      }
-      if (!cunliListPool[year]) {
-        cunliListPool[year] = {};
-      }
-      for (key in cunliSalary[cunliCode][year]) {
-        countrySort[cunliCode][year][key] = 0;
-        if (!countrySortPool[year][key]) {
-          countrySortPool[year][key] = {};
-        }
-        if (!cunliListPool[year][key]) {
-          cunliListPool[year][key] = {};
-        }
-        if (!cunliListPool[year][key][cunliSalary[cunliCode][year][key]]) {
-          cunliListPool[year][key][cunliSalary[cunliCode][year][key]] = [];
-        }
-        countrySortPool[year][key][cunliSalary[cunliCode][year][key]] = 0;
-        cunliListPool[year][key][cunliSalary[cunliCode][year][key]].push(cunliCode);
-      }
-    }
-  }
-  for (year in countrySortPool) {
-    for (key in countrySortPool[year]) {
-      let pool = Object.keys(countrySortPool[year][key]);
-      pool.sort(function (a, b) {
-        return b - a;
-      });
-      for (let i = 0; i < pool.length; i++) {
-        countrySortPool[year][key][pool[i]] = i + 1;
-      }
-    }
-  }
-  for (cunliCode in countrySort) {
-    for (year in countrySort[cunliCode]) {
-      for (key in countrySort[cunliCode][year]) {
-        countrySort[cunliCode][year][key] = countrySortPool[year][key][cunliSalary[cunliCode][year][key]];
-      }
-    }
-  }
-});
+// let countrySort = {}, countrySortPool = {}, cunliListPool = {};
+// $.getJSON('fia_data.json', function (data) {
+//   cunliSalary = data;
+//   for (cunliCode in cunliSalary) {
+//     countrySort[cunliCode] = {
+//       name: ''
+//     };
+//     for (year in cunliSalary[cunliCode]) {
+//       countrySort[cunliCode][year] = {};
+//       if (!countrySortPool[year]) {
+//         countrySortPool[year] = {};
+//       }
+//       if (!cunliListPool[year]) {
+//         cunliListPool[year] = {};
+//       }
+//       for (key in cunliSalary[cunliCode][year]) {
+//         countrySort[cunliCode][year][key] = 0;
+//         if (!countrySortPool[year][key]) {
+//           countrySortPool[year][key] = {};
+//         }
+//         if (!cunliListPool[year][key]) {
+//           cunliListPool[year][key] = {};
+//         }
+//         if (!cunliListPool[year][key][cunliSalary[cunliCode][year][key]]) {
+//           cunliListPool[year][key][cunliSalary[cunliCode][year][key]] = [];
+//         }
+//         countrySortPool[year][key][cunliSalary[cunliCode][year][key]] = 0;
+//         cunliListPool[year][key][cunliSalary[cunliCode][year][key]].push(cunliCode);
+//       }
+//     }
+//   }
+//   for (year in countrySortPool) {
+//     for (key in countrySortPool[year]) {
+//       let pool = Object.keys(countrySortPool[year][key]);
+//       pool.sort(function (a, b) {
+//         return b - a;
+//       });
+//       for (let i = 0; i < pool.length; i++) {
+//         countrySortPool[year][key][pool[i]] = i + 1;
+//       }
+//     }
+//   }
+//   for (cunliCode in countrySort) {
+//     for (year in countrySort[cunliCode]) {
+//       for (key in countrySort[cunliCode][year]) {
+//         countrySort[cunliCode][year][key] = countrySortPool[year][key][cunliSalary[cunliCode][year][key]];
+//       }
+//     }
+//   }
+// });
 
 var sidebar = new ol.control.Sidebar({ element: 'sidebar', position: 'right' });
 
@@ -120,7 +120,7 @@ var cunliStyle = function (f) {
 
 var vectorCunli = new ol.layer.Vector({
   source: new ol.source.Vector({
-    url: 'https://kiang.github.io/taiwan_basecode/cunli/topo/20210324.json',
+    url: 'https://kiang.github.io/taiwan_basecode/cunli/topo/20240807.json',
     format: new ol.format.TopoJSON()
   }),
   style: cunliStyle

@@ -55,7 +55,13 @@
           try {
             await loadScript('/assets/map/js/routie.min.js');
             await loadScript('/assets/map/js/ol3-sidebar.js');
-            // 直接載入主程式
+            
+            // 等待 MapDataContext 資料載入完成
+            // await new Promise((resolve) => {
+            //   window.addEventListener('mapDataReady', resolve, { once: true });
+            // });
+            
+            // 資料準備好後再載入 main.js
             await loadScript('/assets/map/main.js');
           } catch (error) {
             console.error('Error loading scripts:', error);
@@ -63,7 +69,7 @@
         }
 
         // 給一點延遲確保 React 元件都已經渲染完成
-        setTimeout(initializeMap, 100);
+        setTimeout(initializeMap);
       });
     </script>
   </body>

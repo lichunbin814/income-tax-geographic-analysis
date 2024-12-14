@@ -1,8 +1,9 @@
+import { MapDataProvider } from './contexts/MapDataContext'; 
 import './App.css'
 
 function App() {
   return (
-    <>
+    <MapDataProvider>
       <div id="sidebar" className="sidebar collapsed">
         <div className="sidebar-tabs">
           <ul role="tablist">
@@ -30,7 +31,7 @@ function App() {
               <span className="colorBox" style={{backgroundColor: 'rgba(215,48,31,0.6)'}}></span>&nbsp;1100
               <span className="colorBox" style={{backgroundColor: 'rgba(179,0,0,0.6)'}}></span>&nbsp;1300
               <span className="colorBox" style={{backgroundColor: 'rgba(127,0,0,0.6)'}}></span>&nbsp;1500
-              <span className="colorBox" style={{backgroundColor: 'rgba(64,0,0,0.6)'}}></span>&nbsp;>1500
+              <span className="colorBox" style={{backgroundColor: 'rgba(64,0,0,0.6)'}}></span>&nbsp;&gt;1500
             </div>
           </div>
 
@@ -55,7 +56,7 @@ function App() {
         <a href="#" id="popup-closer" className="ol-popup-closer"></a>
         <div id="popup-content"></div>
       </div>
-    </>
+    </MapDataProvider>
   )
 }
 
