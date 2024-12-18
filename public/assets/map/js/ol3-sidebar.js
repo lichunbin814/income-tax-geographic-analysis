@@ -123,3 +123,5 @@ ol.control.Sidebar.prototype._onClick = function(evt) {
 ol.control.Sidebar.prototype._onCloseClick = function() {
     this.close();
 };
+
+export default ol.control.Sidebar;

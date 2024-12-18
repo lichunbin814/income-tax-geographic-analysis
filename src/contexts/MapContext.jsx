@@ -4,15 +4,19 @@ const MapContext = createContext();
 
 export function MapProvider({ children }) {
   useEffect(() => {
-    // 確保 ol.control.Sidebar 存在
-    if (window.ol && window.ol.control && window.ol.control.Sidebar) {
-      // 使用全局的 ol 對象而不是導入的
-      window.sidebar = new window.ol.control.Sidebar({ 
-        element: 'sidebar', 
-        position: 'right' 
-      });
-    } else {
-      console.error('ol.control.Sidebar is not available');
+    if (window.ol && window.ol.control) {
+      // 從 src/contexts 到 public/assets/map/js 的相對路徑
+      import('../../public/assets/map/js/ol3-sidebar.js')
+        .then(module => {
+          const Sidebar = module.default;
+          window.sidebar = new Sidebar({ 
+            element: 'sidebar', 
+            position: 'right' 
+          });
+        })
+        .catch(error => {
+          console.error('Failed to load sidebar:', error);
+        });
     }
   }, []);
 
@@ -29,4 +33,4 @@ export function useMapConfig() {
     throw new Error('useMapConfig must be used within a MapProvider');
   }
   return context;
-} 
+}
