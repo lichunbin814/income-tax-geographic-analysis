@@ -20,6 +20,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/openlayers/4.6.4/ol.js"></script>
+    <!-- 確保 ol3-sidebar.js 在 OpenLayers 之後載入 -->
+    <script src="/assets/map/js/ol3-sidebar.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
     
     <!-- 初始化必要的全域變數 -->
@@ -54,14 +56,6 @@
         async function initializeMap() {
           try {
             await loadScript('/assets/map/js/routie.min.js');
-            await loadScript('/assets/map/js/ol3-sidebar.js');
-            
-            // 等待 MapDataContext 資料載入完成
-            // await new Promise((resolve) => {
-            //   window.addEventListener('mapDataReady', resolve, { once: true });
-            // });
-            
-            // 資料準備好後再載入 main.js
             await loadScript('/assets/map/main.js');
           } catch (error) {
             console.error('Error loading scripts:', error);

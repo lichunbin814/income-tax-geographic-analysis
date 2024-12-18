@@ -51,7 +51,7 @@
 //   }
 // });
 
-var sidebar = new ol.control.Sidebar({ element: 'sidebar', position: 'right' });
+var sidebar = window.sidebar;
 
 var projection = ol.proj.get('EPSG:3857');
 var projectionExtent = projection.getExtent();
