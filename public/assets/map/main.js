@@ -51,7 +51,7 @@
 //   }
 // });
 
-var sidebar = window.sidebar;
+// var sidebar = window.sidebar;
 
 var projection = ol.proj.get('EPSG:3857');
 var projectionExtent = projection.getExtent();
@@ -156,7 +156,7 @@ var map = new ol.Map({
   view: appView
 });
 
-map.addControl(sidebar);
+// map.addControl(sidebar);
 
 var geolocation = new ol.Geolocation({
   projection: appView.getProjection()
@@ -347,7 +347,7 @@ map.on('singleclick', function (evt) {
     if (false === featureFound && p['VILLCODE']) {
       showFeature(feature);
       featureFound = true;
-      sidebar.open('home');
+      // sidebar.open('home');
     }
   });
 });
@@ -411,7 +411,7 @@ vectorCunli.on('change', function (e) {
       if (p.VILLCODE === currentCunliCode) {
         showFeature(f);
         firstFound = true;
-        sidebar.open('home');
+        // sidebar.open('home');
       }
     });
     if (false === cunliInitDone) {
@@ -442,6 +442,6 @@ function updateCunliList() {
   cunliListHtml += '</table>';
   $('#cunliList').html(cunliListHtml);
   $('.btn-cunli-list').click(function () {
-    sidebar.open('home');
+    // sidebar.open('home');
   });
 }
