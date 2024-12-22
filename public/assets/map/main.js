@@ -1,6 +1,6 @@
 // $.ajaxSetup({ async: false });
 
-// let countrySort = {}, countrySortPool = {}, cunliListPool = {};
+// let countrySort = {}, countrySortPool = {}, cunliListPool = {}, cunliSalary = {};
 // $.getJSON('fia_data.json', function (data) {
 //   cunliSalary = data;
 //   for (cunliCode in cunliSalary) {
@@ -49,9 +49,8 @@
 //       }
 //     }
 //   }
+//   console.log('Data loaded:', cunliSalary);
 // });
-
-// var sidebar = window.sidebar;
 
 var projection = ol.proj.get('EPSG:3857');
 var projectionExtent = projection.getExtent();
@@ -121,7 +120,7 @@ var cunliStyle = function (f) {
 var vectorCunli = new ol.layer.Vector({
   source: new ol.source.Vector({
     url: 'https://kiang.github.io/taiwan_basecode/cunli/topo/20240807.json',
-    format: new ol.format.TopoJSON()
+    format: new ol.format.TopoJSON(),
   }),
   style: cunliStyle
 });
@@ -150,13 +149,23 @@ var appView = new ol.View({
 });
 
 var map = new ol.Map({
-  layers: [baseLayer, vectorCunli],
-  overlays: [popup],
   target: 'map',
+  layers: [baseLayer, vectorCunli],
   view: appView
 });
 
-// map.addControl(sidebar);
+map.on('singleclick', function (evt) {
+  map.forEachFeatureAtPixel(evt.pixel, function (feature, layer) {
+    if (layer === vectorCunli && feature.get('VILLCODE')) {
+      showFeature(feature);
+      return true;  // 找到符合條件的 feature 後立即停止遍歷
+    }
+  }, {
+    layerFilter: function(layer) {
+      return layer === vectorCunli;
+    }
+  });
+});
 
 var geolocation = new ol.Geolocation({
   projection: appView.getProjection()
@@ -227,13 +236,8 @@ var showCunli = function (theYear, theButton, cunliCode) {
   currentCunliCode = cunliCode;
   if (!cunliCode) {
     cunliCode = '';
-  } else {
-    vectorCunli.getSource().forEachFeature(function (f) {
-      if (f.get('VILLCODE') === cunliCode) {
-        showFeature(f);
-      }
-    });
   }
+
   vectorCunli.getSource().changed();
 
   $('a.btn-year').each(function () {
@@ -253,130 +257,107 @@ var showCunli = function (theYear, theButton, cunliCode) {
 };
 
 function showFeature(feature) {
+  console.log('showFeature called with:', feature);
+  
   var cunli = feature.get('COUNTYNAME') + feature.get('TOWNNAME') + feature.get('VILLNAME');
   var cunliKey = feature.get('VILLCODE');
-  var headerPrinted = false;
-  var detail = '<h3>' + cunli + '</h3><div style="float:right;">單位：金額(千元)</div><table class="table table-striped table-fixed" style="display: block;overflow:scroll;">';
-  var targetHash = '#' + currentYear + '/' + currentButton + '/' + cunliKey;
+  var tableData = [];
   var chartDataSet1 = [], chartDataSet2 = [];
+  
+  console.log('Processing data for:', { cunli, cunliKey });
+  
   if (cunliSalary[cunliKey]) {
-    detail += '<canvas id="chart1" height="300"></canvas>';
-    var chartData = {
-      labels: [],
-      datasets: []
-    };
-    for (y in cunliSalary[cunliKey]) {
-      chartData.labels.push(y);
+    console.log('Found salary data:', cunliSalary[cunliKey]);
+    
+    for (let y in cunliSalary[cunliKey]) {
+      const rowData = [y];
+      for (let k in cunliSalary[cunliKey][y]) {
+        rowData.push(cunliSalary[cunliKey][y][k]);
+      }
+      tableData.push(rowData);
       chartDataSet1.push(cunliSalary[cunliKey][y].mid);
       chartDataSet2.push(cunliSalary[cunliKey][y].avg);
-      var yLine = '<tr><td>' + y + '</td>';
-      for (k in cunliSalary[cunliKey][y]) {
-        if (false === headerPrinted) {
-          detail += '<thead><tr><td>年度</td><td>納稅單位</td><td>綜合所得總額</td><td>平均數</td><td>中位數</td><td>第一分位數</td><td>第三分位數</td><td>標準差</td><td>變異係數</td></tr></thead><tbody>';
-          headerPrinted = true;
-        }
-        yLine += '<td>' + cunliSalary[cunliKey][y][k] + '</td>';
-      }
-      detail += yLine + '</tr>';
     }
 
-  }
-  detail += '</tbody></table>';
-  $('#sidebar-main-block').html(detail);
-  if (cunliSalary[cunliKey]) {
-    chartData.datasets.push({
-      label: "中位數",
-      backgroundColor: "rgb(255, 99, 132)",
-      data: chartDataSet1
-    });
-    chartData.datasets.push({
-      label: "平均數",
-      backgroundColor: "rgb(132, 99, 255)",
-      data: chartDataSet2
-    });
-    const config1 = {
-      type: 'line',
-      data: chartData
+    console.log('Prepared data:', { tableData, chartDataSet1, chartDataSet2 });
+
+    const chartData = {
+      labels: Object.keys(cunliSalary[cunliKey]),
+      datasets: [
+        {
+          label: "中位數",
+          backgroundColor: "rgb(255, 99, 132)",
+          data: chartDataSet1
+        },
+        {
+          label: "平均數",
+          backgroundColor: "rgb(132, 99, 255)",
+          data: chartDataSet2
+        }
+      ]
     };
-    const ctx1 = document.getElementById('chart1').getContext('2d');
-    const myChart1 = new Chart(ctx1, config1);
+
+    console.log('Chart data:', chartData);
+
+    const event = new CustomEvent('showMapData', {
+      detail: {
+        title: cunli,
+        tableData: tableData,
+        chartData: chartData,
+        chartConfig: chartData
+      }
+    });
+
+    console.log('Dispatching event with data:', event.detail);
+    window.dispatchEvent(event);
+  } else {
+    console.log('No salary data found for:', cunliKey);
   }
+
+  var targetHash = '#' + currentYear + '/' + currentButton + '/' + cunliKey;
   if (window.location.hash !== targetHash) {
     window.location.hash = targetHash;
   }
-  map.getView().fit(feature.getGeometry());
-  geolocationCentered = true;
-
-  if (false === selectedFeature) {
-    selectedFeature = new ol.Feature();
-    new ol.layer.Vector({
-      map: map,
-      source: new ol.source.Vector({
-        features: [selectedFeature]
-      })
-    });
-  }
-  selectedFeature.setStyle(new ol.style.Style({
-    stroke: new ol.style.Stroke({
-      color: 'rgba(255,0,0,0.7)',
-      width: 5
-    }),
-    fill: new ol.style.Fill({
-      color: 'rgba(255,255,0,0.5)',
-    }),
-    text: new ol.style.Text({
-      font: 'bold 16px "Open Sans", "Arial Unicode MS", "sans-serif"',
-      placement: 'point',
-      fill: new ol.style.Fill({
-        color: 'blue'
-      }),
-      text: cunli
-    })
-  }));
-  selectedFeature.setGeometry(feature.getGeometry());
 }
 
-var selectedFeature = false;
-map.on('singleclick', function (evt) {
-  map.getView().setZoom(17);
-  var sideBarOpened = false;
-  $('#sidebar-main-block').html('');
-  var featureFound = false;
-  map.forEachFeatureAtPixel(evt.pixel, function (feature, layer) {
-    var p = feature.getProperties();
-    if (false === featureFound && p['VILLCODE']) {
-      showFeature(feature);
-      featureFound = true;
-      // sidebar.open('home');
-    }
-  });
-});
+var cunliInitDone = false;
 
-map.once('postrender', function (e) {
-  $('a.btn-play').click(function () {
-    currentButton = $(this).attr('id');
-    window.location.hash = '#' + currentYear + '/' + currentButton;
+vectorCunli.on('change', function (e) {
+  if (!cunliInitDone && vectorCunli.getSource().getState() === 'ready') {
+    cunliInitDone = true;
+    
+    // 更新村里名稱
+    vectorCunli.getSource().forEachFeature(function (f) {
+      var p = f.getProperties();
+      if (countrySort[p.VILLCODE]) {
+        countrySort[p.VILLCODE].name = p.COUNTYNAME + p.TOWNNAME + p.VILLNAME;
+      }
+    });
+
+    // 初始化顯示
+    showCunli(currentYear, currentButton);
     updateCunliList();
-    return false;
-  });
-
-  $('a.btn-year').click(function () {
-    currentYear = $(this).attr('data-year');
-    window.location.hash = '#' + currentYear + '/' + currentButton;
-    updateCunliList();
-    return false;
-  });
-
-  $('a.btn-city').click(function () {
-    var cLat = parseFloat($(this).attr('data-lat'));
-    var cLng = parseFloat($(this).attr('data-lng'));
-    map.getView().setCenter(ol.proj.fromLonLat([cLng, cLat]));
-    return false;
-  });
-  if (window.location.hash == '' || window.location.hash == '#') {
-    window.location.hash = '#' + currentYear + '/' + currentButton;
   }
 });
+
+function updateCunliList() {
+  var salaryList = Object.keys(countrySortPool[currentYear][currentButton]).reverse();
+  var cunliListHtml = '<h1>' + currentYear + ' / ' + currentButton + '</h1>';
+  cunliListHtml += '<table class="table table-striped table-fixed">';
+  for (k in salaryList) {
+    cunliListHtml += '<tr><td>' + salaryList[k] + '</td><td>';
+    for (j in cunliListPool[currentYear][currentButton][salaryList[k]]) {
+      var theCode = cunliListPool[currentYear][currentButton][salaryList[k]][j];
+      cunliListHtml += '<a href="#' + currentYear + '/' + currentButton + '/' + theCode + '" class="btn-cunli-list">' + countrySort[theCode].name + '</a> ';
+    }
+    cunliListHtml += '</td></tr>';
+  }
+  cunliListHtml += '</table>';
+  $('#cunliList').html(cunliListHtml);
+  $('.btn-cunli-list').click(function () {
+    // sidebar.open('home');
+  });
+}
 
 function ColorBar(value) {
   if (value == 0)
@@ -401,47 +382,4 @@ function ColorBar(value) {
     return "rgba(64,0,0,0.6)"
 }
 
-routie(':theYear/:theButton/:cunliCode?', showCunli);
-
-var firstFound = false, cunliInitDone = false;
-vectorCunli.on('change', function (e) {
-  if (currentCunliCode !== '' && false === firstFound && vectorCunli.getSource().getState() === 'ready') {
-    vectorCunli.getSource().forEachFeature(function (f) {
-      var p = f.getProperties();
-      if (p.VILLCODE === currentCunliCode) {
-        showFeature(f);
-        firstFound = true;
-        // sidebar.open('home');
-      }
-    });
-    if (false === cunliInitDone) {
-      vectorCunli.getSource().forEachFeature(function (f) {
-        var p = f.getProperties();
-        if (countrySort[p.VILLCODE]) {
-          countrySort[p.VILLCODE].name = p.COUNTYNAME + p.TOWNNAME + p.VILLNAME;
-        }
-      });
-      cunliInitDone = true;
-      updateCunliList();
-    }
-  }
-})
-
-function updateCunliList() {
-  var salaryList = Object.keys(countrySortPool[currentYear][currentButton]).reverse();
-  var cunliListHtml = '<h1>' + currentYear + ' / ' + currentButton + '</h1>';
-  cunliListHtml += '<table class="table table-striped table-fixed">';
-  for (k in salaryList) {
-    cunliListHtml += '<tr><td>' + salaryList[k] + '</td><td>';
-    for (j in cunliListPool[currentYear][currentButton][salaryList[k]]) {
-      var theCode = cunliListPool[currentYear][currentButton][salaryList[k]][j];
-      cunliListHtml += '<a href="#' + currentYear + '/' + currentButton + '/' + theCode + '" class="btn-cunli-list">' + countrySort[theCode].name + '</a> ';
-    }
-    cunliListHtml += '</td></tr>';
-  }
-  cunliListHtml += '</table>';
-  $('#cunliList').html(cunliListHtml);
-  $('.btn-cunli-list').click(function () {
-    // sidebar.open('home');
-  });
-}
+var selectedFeature = false;
