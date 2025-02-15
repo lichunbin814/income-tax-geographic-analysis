@@ -2,6 +2,52 @@ import fs from 'fs/promises';
 import Papa from 'papaparse';
 import path from 'path';
 
+function parseAddress(addressStr) {
+    // 移除可能的空白
+    addressStr = addressStr.trim();
+    
+    // 處理縣市名稱
+    // let countyName, townName;
+    const mainCuntrySplitIndex = addressStr.indexOf('市');
+    const countySplitIndex = ~mainCuntrySplitIndex && mainCuntrySplitIndex <= 2 ? mainCuntrySplitIndex : addressStr.indexOf('縣');
+    /*
+    addressStr 臺東縣太麻里鄉
+countySplitIndex -1
+    */
+ 
+    const countyName = addressStr.substring(0, countySplitIndex + 1);
+    const townName = addressStr.substring(countySplitIndex + 1);
+    // if (addressStr.includes('市')) {
+    //     // 處理直轄市和省轄市
+    //     const parts = addressStr.split('市');
+    //     countyName = parts[0] + '市';
+    //     townName = parts[1].replace(/(區|鄉|鎮)$/, '');
+    // } else if (addressStr.includes('縣')) {
+    //     // 處理縣
+    //     const parts = addressStr.split('縣');
+    //     countyName = parts[0] + '縣';
+    //     townName = parts[1].replace(/(區|鄉|鎮)$/, '');
+    // }
+
+    // // 判斷鄉鎮市區的類型並加上對應的後綴
+    // let townSuffix = '';
+    // if (addressStr.includes('區')) {
+    //     townSuffix = '區';
+    // } else if (addressStr.includes('鎮')) {
+    //     townSuffix = '鎮';
+    // } else if (addressStr.includes('鄉')) {
+    //     townSuffix = '鄉';
+    // }
+    
+    // // 組合完整的鄉鎮市區名稱
+    // townName = townName + townSuffix;
+
+    return {
+        countyName,
+        townName
+    };
+}
+
 async function mergeData() {
     const currentYear = new Date().getFullYear();
     try {
@@ -28,9 +74,9 @@ async function mergeData() {
         });
 
         // 處理過去十年的資料 
-        const years = Array.from({length: 10}, (_, i) => currentYear - i);
+        // const years = Array.from({length: 10}, (_, i) => currentYear - i);
         
-        for (const year of years) {
+        for (const year of [2021]) {
             try {
                 // 讀取該年的 CSV 檔案
                 const csvPath = path.join(currentDir, `./scripts/source/csv/${year}.csv`);
@@ -46,12 +92,18 @@ async function mergeData() {
                 console.log(`${year}.csv 包含 ${data.length} 筆資料`);
 
                 let processedCount = 0;
+                let notFoundCount = 0;
+                
                 // 處理每一筆資料
                 data.forEach(row => {
-                    // 從村里資訊構建 VILLCODE
-                    const countyName = row['縣市'];
-                    const townName = row['鄉鎮市區'];
+                    // 解析地址
+                    const { countyName, townName } = parseAddress(row['縣市別']);
                     const villName = row['村里'];
+        
+
+                    if(villName === '合計' || villName === '其他'){
+                        return;
+                    }
 
                     // 在 cunli.json 中找到對應的 VILLCODE
                     const geometry = cunliData.objects['20210324'].geometries.find(g => 
@@ -66,7 +118,7 @@ async function mergeData() {
                         
                         // 建立該年度的資料
                         fiaData[villCode][year] = {
-                            adm: parseInt(row['納稅單位']),
+                            adm: parseInt(row['納稅單位(戶)']),
                             total: parseInt(row['綜合所得總額']),
                             avg: parseFloat(row['平均數']),
                             mid: parseFloat(row['中位數']),
@@ -75,9 +127,14 @@ async function mergeData() {
                             sd: parseFloat(row['標準差']),
                             cv: parseFloat(row['變異係數'])
                         };
+                    } else {
+                        notFoundCount++;
+                        console.warn(`找不到對應的村里代碼: 縣市=${countyName}, 鄉鎮=${townName}, 村里=${villName}`);
+                        console.warn('原始資料:', row['縣市別']);
                     }
                 });
                 console.log(`${year}年成功處理 ${processedCount}/${data.length} 筆資料`);
+                console.log(`${year}年未找到對應代碼: ${notFoundCount} 筆`);
 
             } catch (error) {
                 console.error(`處理 ${year} 年資料時發生錯誤:`, error);
