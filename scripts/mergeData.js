@@ -3,6 +3,7 @@ import Papa from 'papaparse';
 import path from 'path';
 
 async function mergeData() {
+    const currentYear = new Date().getFullYear();
     try {
         // 取得目前工作目錄
         const currentDir = process.cwd();
@@ -26,8 +27,8 @@ async function mergeData() {
             fiaData[code] = {};
         });
 
-        // 處理每一年的資料 (2011-2022)
-        const years = Array.from({length: 12}, (_, i) => 2014 + i);
+        // 處理過去十年的資料 
+        const years = Array.from({length: 10}, (_, i) => currentYear - i);
         
         for (const year of years) {
             try {
