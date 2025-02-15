@@ -248,18 +248,23 @@ var showCunli = function (theYear, theButton, cunliCode) {
 
   vectorCunli.getSource().changed();
 
-  $('a.btn-year').each(function () {
-    if ($(this).attr('data-year') === currentYear) {
-      $(this).removeClass('btn-default').addClass('btn-primary');
+  document.querySelectorAll('a.btn-year').forEach(btn => {
+    if (btn.getAttribute('data-year') === currentYear) {
+      btn.classList.remove('btn-default');
+      btn.classList.add('btn-primary');
     } else {
-      $(this).removeClass('btn-primary').addClass('btn-default');
+      btn.classList.remove('btn-primary');
+      btn.classList.add('btn-default');
     }
   });
-  $('a.btn-play').each(function () {
-    if ($(this).attr('id') === currentButton) {
-      $(this).removeClass('btn-default').addClass('btn-primary');
+
+  document.querySelectorAll('a.btn-play').forEach(btn => {
+    if (btn.id === currentButton) {
+      btn.classList.remove('btn-default');
+      btn.classList.add('btn-primary');
     } else {
-      $(this).removeClass('btn-primary').addClass('btn-default');
+      btn.classList.remove('btn-primary');
+      btn.classList.add('btn-default');
     }
   });
 };
@@ -361,9 +366,14 @@ function updateCunliList() {
     cunliListHtml += '</td></tr>';
   }
   cunliListHtml += '</table>';
-  $('#cunliList').html(cunliListHtml);
-  $('.btn-cunli-list').click(function () {
-    // sidebar.open('home');
+  
+  const cunliListElement = document.getElementById('cunliList');
+  cunliListElement.innerHTML = cunliListHtml;
+  
+  document.querySelectorAll('.btn-cunli-list').forEach(btn => {
+    btn.addEventListener('click', function() {
+      // sidebar.open('home');
+    });
   });
 }
 
