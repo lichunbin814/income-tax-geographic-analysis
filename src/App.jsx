@@ -57,7 +57,7 @@ function initOperlzyer() {
 //       }
 //     }
 //   }
-//   console.log('Data loaded:', cunliSalary);
+//   
 // });
 
 var projection = ol.proj.get('EPSG:3857');
@@ -182,7 +182,7 @@ var geolocation = new ol.Geolocation({
 geolocation.setTracking(true);
 
 geolocation.on('error', function (error) {
-  console.log(error.message);
+  
 });
 
 var positionFeature = new ol.Feature();
@@ -220,7 +220,7 @@ new ol.layer.Vector({
 });
 
 var currentYear = '2022', currentButton = 'mid', currentCunliCode = '',
-  cunli, cunliSalary,
+  cunli,
   valueKeys = {
     avg: 'avg',
     mid: 'mid',
@@ -265,17 +265,17 @@ var showCunli = function (theYear, theButton, cunliCode) {
 };
 
 function showFeature(feature) {
-  console.log('showFeature called with:', feature);
+  
   
   var cunli = feature.get('COUNTYNAME') + feature.get('TOWNNAME') + feature.get('VILLNAME');
   var cunliKey = feature.get('VILLCODE');
   var tableData = [];
   var chartDataSet1 = [], chartDataSet2 = [];
   
-  console.log('Processing data for:', { cunli, cunliKey });
+  
   
   if (cunliSalary[cunliKey]) {
-    // console.log('Found salary data:', cunliSalary[cunliKey]);
+    // 
     
     for (let y in cunliSalary[cunliKey]) {
       const rowData = [y];
@@ -287,7 +287,7 @@ function showFeature(feature) {
       chartDataSet2.push(cunliSalary[cunliKey][y].avg);
     }
 
-    console.log('Prepared data:', { tableData, chartDataSet1, chartDataSet2 });
+    
 
     const chartData = {
       labels: Object.keys(cunliSalary[cunliKey]),
@@ -305,7 +305,7 @@ function showFeature(feature) {
       ]
     };
 
-    console.log('Chart data:', chartData);
+    
 
     const event = new CustomEvent('showMapData', {
       detail: {
@@ -316,10 +316,10 @@ function showFeature(feature) {
       }
     });
 
-    console.log('Dispatching event with data:', event.detail);
+    
     window.dispatchEvent(event);
   } else {
-    console.log('No salary data found for:', cunliKey);
+    
   }
 
   var targetHash = '#' + currentYear + '/' + currentButton + '/' + cunliKey;
@@ -401,38 +401,39 @@ function App() {
 
 
   useEffect(() => {
-    if(isInited ){
+    if(isInited && !window.cunliSalary ){
       return;
     }
     window.ol = ol;
+
     setIsInited(true);
 
     setTimeout(() => {
-      // initOperlzyer();
-    }, 3000);
+      initOperlzyer();
+    });
   }, []);
 
   useEffect(() => {
-    console.log('App: Setting up event listener');
+    
     const handleMapData = (event) => {
-      console.log('App: Received showMapData event:', event.detail);
+      
       setMapData(event.detail);
       setDialogOpen(true);
     };
 
     window.addEventListener('showMapData', handleMapData);
     return () => {
-      console.log('App: Removing event listener');
+      
       window.removeEventListener('showMapData', handleMapData);
     };
   }, []);
 
   const handleClose = () => {
-    console.log('App: Dialog closing');
+    
     setDialogOpen(false);
   };
 
-  console.log('App render:', { dialogOpen, mapData });
+  
 
   return (
     <MapProvider>
