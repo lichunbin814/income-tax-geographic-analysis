@@ -20,11 +20,10 @@ function Map() {
   const { cunliSalary, countrySort } = useMapData();
   const { params } = useHashRouter();
 
-  // 初始化地圖
+  // 初始化地圖 - 只在組件掛載時執行一次
   useEffect(() => {
     if (!cunliSalary || !mapContainerRef.current || mapRef.current) return;
     
-    console.log('初始化地圖');
     
     // 初始化投影和分辨率
     const projection = ol.proj.get('EPSG:3857');
@@ -91,6 +90,17 @@ function Map() {
     map.on('singleclick', (evt) => {
       map.forEachFeatureAtPixel(evt.pixel, (feature, layer) => {
         if (layer === vectorCunli && feature.get('VILLCODE')) {
+          // 獲取特徵的幾何中心
+          const extent = feature.getGeometry().getExtent();
+          const center = ol.extent.getCenter(extent);
+          
+          // 平滑地移動到中心點
+          map.getView().animate({
+            center: center,
+            duration: 500
+          });
+          
+          // 顯示特徵資訊
           showFeature(feature);
           return true;
         }
@@ -171,7 +181,8 @@ function Map() {
         setMap(null);
       }
     };
-  }, [cunliSalary, countrySort, currentYear, currentButton, showCunli, showFeature, createCunliStyle, vectorCunliRef, mapRef, setMap, cunliInitDoneRef, params]);
+  // 只依賴於初始化所需的變量，避免不必要的重新創建
+  }, [cunliSalary, setMap]);
   
   return <div ref={mapContainerRef} className="map" id="map"></div>;
 }
