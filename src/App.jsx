@@ -8,6 +8,11 @@ import * as ol from 'openlayers';
 function initOperlzyer() {
   // $.ajaxSetup({ async: false });
 
+/* 
+ * This data loading code is now handled in MapDataContext.jsx
+ * The variables countrySort, countrySortPool, cunliListPool, and cunliSalary
+ * are now loaded as global window variables from there
+ */
 // let countrySort = {}, countrySortPool = {}, cunliListPool = {}, cunliSalary = {};
 // $.getJSON('fia_data.json', function (data) {
 //   cunliSalary = data;
@@ -90,10 +95,12 @@ var popup = new ol.Overlay({
   }
 });
 
+/* Commented out: nlscMatrixIds is defined but never used
 var nlscMatrixIds = new Array(21);
 for (var i = 0; i < 21; ++i) {
   nlscMatrixIds[i] = i;
 }
+*/
 
 var stylePool = {};
 var cunliStyle = function (f) {
@@ -224,14 +231,17 @@ new ol.layer.Vector({
 });
 
 var currentYear = '2022', currentButton = 'mid', currentCunliCode = '',
-  cunli,
+  // cunli, // Commented out: Variable is declared but only used locally in showFeature
+  /* Commented out: valueKeys is defined but never used
   valueKeys = {
     avg: 'avg',
     mid: 'mid',
     sd: 'sd',
     mid1: 'mid1',
     mid3: 'mid3'
-  }, buttonKeys = {
+  }, 
+  */
+  buttonKeys = {
     avg: 'avg',
     mid: 'mid',
     sd: 'sd',
