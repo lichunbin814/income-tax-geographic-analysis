@@ -9,6 +9,7 @@ function Map() {
   const [isMapLoading, setIsMapLoading] = useState(true);
   const [initialRender, setInitialRender] = useState(true);
   const mapInitializedRef = useRef(false); // 追蹤地圖是否已初始化
+  const [currentZoom, setCurrentZoom] = useState(14); // 追蹤當前縮放級別
   
   const { 
     currentYear, 
@@ -49,11 +50,7 @@ function Map() {
   useEffect(() => {
     if (dataInitialized && !isLoading && !isMapLoading) {
       // 給一個短暫的延遲，確保地圖已經完全渲染
-      const timer = setTimeout(() => {
-        setInitialRender(false);
-      }, 500);
-      
-      return () => clearTimeout(timer);
+      setInitialRender(false);
     }
   }, [dataInitialized, isLoading, isMapLoading]);
 
@@ -83,6 +80,30 @@ function Map() {
     }
     
     processBatch();
+  }, []);
+
+  // 監聽地圖縮放級別變化
+  useEffect(() => {
+    if (mapRef.current) {
+      const view = mapRef.current.getView();
+      
+      const handleZoomChange = () => {
+        const zoom = view.getZoom();
+        setCurrentZoom(zoom);
+        
+        // 當縮放級別變化時，更新向量圖層以顯示/隱藏標籤
+        if (vectorCunliRef.current) {
+          vectorCunliRef.current.getSource().changed();
+        }
+      };
+      
+      // 監聽縮放變化事件
+      view.on('change:resolution', handleZoomChange);
+      
+      return () => {
+        view.un('change:resolution', handleZoomChange);
+      };
+    }
   }, []);
 
   // 初始化地圖 - 只在組件掛載時執行一次
@@ -149,6 +170,8 @@ function Map() {
     const appView = new ol.View({
       center: ol.proj.fromLonLat(defaultCenter),
       zoom: 14,
+      minZoom: 8, // 設置最小縮放級別
+      maxZoom: 18, // 設置最大縮放級別
       constrainResolution: true // 限制分辨率以提高性能
     });
     
@@ -164,6 +187,7 @@ function Map() {
     // 存儲地圖引用
     mapRef.current = map;
     setMap(map);
+    setCurrentZoom(appView.getZoom()); // 設置初始縮放級別
     
     // 設置點擊事件 - 使用防抖動以提高性能
     let clickTimeout;
@@ -276,6 +300,14 @@ function Map() {
   // 只依賴於必要的變量，避免不必要的重新創建
   }, [cunliSalary, projectionConfig]); // 移除不必要的依賴項
   
+  // 當 currentYear 或 currentButton 變化時，更新地圖樣式
+  useEffect(() => {
+    if (mapRef.current && vectorCunliRef.current) {
+      // 通知向量圖層更新樣式
+      vectorCunliRef.current.getSource().changed();
+    }
+  }, [currentYear, currentButton]);
+  
   // 只在初始渲染或JSON檔還沒下載完成時顯示載入中
   const shouldShowLoading = initialRender && (isLoading || isMapLoading);
   
@@ -288,6 +320,15 @@ function Map() {
           <div className="map-loading-text">載入地圖資料中...</div>
         </div>
       )}
+      <div className="zoom-info">
+        <div className="zoom-level">縮放級別: {Math.round(currentZoom)}</div>
+        <div className="data-type">{currentButton === 'avg' ? '平均數' : 
+                                    currentButton === 'mid' ? '中位數' : 
+                                    currentButton === 'sd' ? '標準差' : 
+                                    currentButton === 'mid1' ? '第一分位數' : 
+                                    currentButton === 'mid3' ? '第三分位數' : ''}
+        </div>
+      </div>
     </>
   );
 }

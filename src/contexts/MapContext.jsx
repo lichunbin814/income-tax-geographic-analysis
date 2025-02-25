@@ -30,6 +30,27 @@ export function colorBar(value) {
     return "rgba(64,0,0,0.6)"
 }
 
+// 獲取數據類型的顯示名稱
+function getDataTypeLabel(buttonType) {
+  switch(buttonType) {
+    case 'avg': return '平均數';
+    case 'mid': return '中位數';
+    case 'sd': return '標準差';
+    case 'mid1': return '第一分位數';
+    case 'mid3': return '第三分位數';
+    default: return '中位數';
+  }
+}
+
+// 格式化數值顯示
+function formatValue(value) {
+  if (value === undefined || value === null) return '';
+  // 如果是標準差，保留一位小數
+  if (value < 10) return value.toFixed(1);
+  // 其他數值顯示為整數
+  return Math.round(value).toString();
+}
+
 export function MapProvider({ children }) {
   // 基本狀態
   const [currentYear, setCurrentYear] = useState('2022');
@@ -121,15 +142,23 @@ export function MapProvider({ children }) {
     
     const key = feature.get('VILLCODE');
     let count = 0;
+    let displayValue = '';
     
     if (cunliSalary[key] && cunliSalary[key][currentYear]) {
       count = cunliSalary[key][currentYear][currentButton];
+      displayValue = formatValue(count);
     }
     
     const fillColor = colorBar(count);
     
-    if (!stylePoolRef.current[fillColor]) {
-      stylePoolRef.current[fillColor] = new ol.style.Style({
+    // 獲取鄉鎮名稱
+    const townName = feature.get('TOWNNAME') || '';
+    const villageName = feature.get('VILLNAME') || '';
+    
+    // 創建樣式 - 使用樣式池來提高性能
+    const styleKey = `${fillColor}_${currentButton}_${currentYear}`;
+    if (!stylePoolRef.current[styleKey]) {
+      stylePoolRef.current[styleKey] = new ol.style.Style({
         stroke: new ol.style.Stroke({
           color: 'rgba(0,0,0,0.7)',
           width: 1
@@ -138,23 +167,42 @@ export function MapProvider({ children }) {
           color: fillColor,
         }),
         text: new ol.style.Text({
-          font: '14px "Open Sans", "Arial Unicode MS", "sans-serif"',
+          font: '12px "Open Sans", "Arial Unicode MS", "sans-serif"',
           fill: new ol.style.Fill({
-            color: 'rgba(0,0,255,1)'
-          })
+            color: '#000'
+          }),
+          stroke: new ol.style.Stroke({
+            color: '#fff',
+            width: 3
+          }),
+          overflow: true,
+          offsetY: -15
         })
       });
     }
     
     feature.set('fillColor', fillColor);
-    const theStyle = stylePoolRef.current[fillColor].clone();
+    const theStyle = stylePoolRef.current[styleKey].clone();
     
-    if (countrySort[key] && countrySort[key][currentYear] && countrySort[key][currentButton]) {
-      theStyle.getText().setText(countrySort[key][currentYear][currentButton].toString());
+    // 設置文字顯示 - 顯示鄉鎮名稱和數據值
+    if (displayValue) {
+      // 根據縮放級別決定顯示的文字內容
+      const zoom = mapRef.current ? mapRef.current.getView().getZoom() : 14;
+      
+      if (zoom >= 14) {
+        // 高縮放級別顯示詳細信息
+        theStyle.getText().setText(`${villageName}\n${displayValue}萬`);
+      } else if (zoom >= 12) {
+        // 中等縮放級別只顯示數據值
+        theStyle.getText().setText(`${displayValue}萬`);
+      } else {
+        // 低縮放級別不顯示文字
+        theStyle.getText().setText('');
+      }
     }
     
     return theStyle;
-  }, [cunliSalary, countrySort, currentYear, currentButton]);
+  }, [cunliSalary, currentYear, currentButton]);
   
   // 從 HashRouterContext 獲取參數 - 使用 useEffect
   useEffect(() => {
@@ -162,6 +210,25 @@ export function MapProvider({ children }) {
       showCunli(params.year, params.button, params.cunliCode);
     }
   }, [params, showCunli]);
+
+  // 監聽地圖縮放事件，更新樣式
+  useEffect(() => {
+    if (map) {
+      const updateStyles = () => {
+        if (vectorCunliRef.current) {
+          vectorCunliRef.current.getSource().changed();
+        }
+      };
+      
+      // 監聽縮放結束事件
+      map.getView().on('change:resolution', updateStyles);
+      
+      return () => {
+        // 清理事件監聽
+        map.getView().un('change:resolution', updateStyles);
+      };
+    }
+  }, [map]);
 
   // 提供 Context 值
   const contextValue = {
