@@ -72,6 +72,7 @@ for (var z = 0; z < 20; ++z) {
 }
 var container = document.getElementById('popup');
 var content = document.getElementById('popup-content');
+/* Commented out: popup-closer event handler is unused
 // var closer = document.getElementById('popup-closer');
 
 // closer.onclick = function () {
@@ -79,6 +80,7 @@ var content = document.getElementById('popup-content');
 //   closer.blur();
 //   return false;
 // };
+*/
 
 var popup = new ol.Overlay({
   element: container,
@@ -181,9 +183,11 @@ var geolocation = new ol.Geolocation({
 
 geolocation.setTracking(true);
 
+/* Commented out: Empty error handler that doesn't do anything
 geolocation.on('error', function (error) {
   
 });
+*/
 
 var positionFeature = new ol.Feature();
 
@@ -349,10 +353,11 @@ vectorCunli.on('change', function (e) {
 
     // 初始化顯示
     showCunli(currentYear, currentButton);
-    updateCunliList();
+    // updateCunliList();
   }
 });
 
+/* Commented out: cunliList element doesn't exist in React components
 function updateCunliList() {
   var salaryList = Object.keys(countrySortPool[currentYear][currentButton]).reverse();
   var cunliListHtml = '<h1>' + currentYear + ' / ' + currentButton + '</h1>';
@@ -376,6 +381,7 @@ function updateCunliList() {
     });
   });
 }
+*/
 
 function ColorBar(value) {
   if (value == 0)
@@ -400,7 +406,7 @@ function ColorBar(value) {
     return "rgba(64,0,0,0.6)"
 }
 
-var selectedFeature = false;
+// var selectedFeature = false; // Commented out: Variable is declared but never used
 }
 
 function App() {
