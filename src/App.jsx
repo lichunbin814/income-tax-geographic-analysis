@@ -5,6 +5,30 @@ import MapDataDialog from './components/MapDataDialog';
 import './App.css';
 import * as ol from 'openlayers';
 
+// 提取 ColorBar 函數到外部
+function colorBar(value) {
+  if (value === 0)
+    return "rgba(255,255,255,0.6)" //white
+  else if (value <= 300)
+    return "rgba(254,232,200,0.6)"
+  else if (value <= 400)
+    return "rgba(253,212,158,0.6)"
+  else if (value <= 500)
+    return "rgba(253,187,132,0.6)"
+  else if (value <= 700)
+    return "rgba(252,141,89,0.6)"
+  else if (value <= 900)
+    return "rgba(239,101,72,0.6)"
+  else if (value <= 1100)
+    return "rgba(215,48,31,0.6)"
+  else if (value <= 1300)
+    return "rgba(179,0,0,0.6)"
+  else if (value <= 1500)
+    return "rgba(127,0,0,0.6)"
+  else
+    return "rgba(64,0,0,0.6)"
+}
+
 function initOperlzyer() {
 
 var projection = ol.proj.get('EPSG:3857');
@@ -24,7 +48,7 @@ var cunliStyle = function (f) {
   if (cunliSalary[key] && cunliSalary[key][currentYear]) {
     count = cunliSalary[key][currentYear][currentButton];
   }
-  var fillColor = ColorBar(count);
+  var fillColor = colorBar(count);
   if (!stylePool[fillColor]) {
     stylePool[fillColor] = new ol.style.Style({
       stroke: new ol.style.Stroke({
@@ -44,7 +68,7 @@ var cunliStyle = function (f) {
   }
   f.set('fillColor', fillColor);
   var theStyle = stylePool[fillColor].clone();
-  if (countrySort[key] && countrySort[key][currentYear] && countrySort[key][currentYear][currentButton]) {
+  if (countrySort[key] && countrySort[key][currentYear] && countrySort[key][currentButton]) {
     theStyle.getText().setText(countrySort[key][currentYear][currentButton].toString());
   }
   return theStyle;
@@ -227,29 +251,6 @@ vectorCunli.on('change', function (e) {
     showCunli(currentYear, currentButton);
   }
 });
-
-function ColorBar(value) {
-  if (value == 0)
-    return "rgba(255,255,255,0.6)" //white
-  else if (value <= 300)
-    return "rgba(254,232,200,0.6)"
-  else if (value <= 400)
-    return "rgba(253,212,158,0.6)"
-  else if (value <= 500)
-    return "rgba(253,187,132,0.6)"
-  else if (value <= 700)
-    return "rgba(252,141,89,0.6)"
-  else if (value <= 900)
-    return "rgba(239,101,72,0.6)"
-  else if (value <= 1100)
-    return "rgba(215,48,31,0.6)"
-  else if (value <= 1300)
-    return "rgba(179,0,0,0.6)"
-  else if (value <= 1500)
-    return "rgba(127,0,0,0.6)"
-  else
-    return "rgba(64,0,0,0.6)"
-}
 
 }
 
