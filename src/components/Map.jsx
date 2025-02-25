@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
-import { useMapConfig } from '../contexts/MapContext';
+import { useMapConfig, formatToTenThousand } from '../contexts/MapContext';
 import { useMapData } from '../contexts/MapDataContext';
 import { useHashRouter } from '../contexts/HashRouterContext';
 import * as ol from 'openlayers';
@@ -24,6 +24,37 @@ function Map() {
   } = useMapConfig();
   const { cunliSalary, countrySort, isLoading, dataInitialized } = useMapData();
   const { params } = useHashRouter();
+
+  // 獲取當前選擇的數據值
+  const [currentValue, setCurrentValue] = useState(null);
+
+  // 當年份或按鈕變化時，更新當前值
+  useEffect(() => {
+    if (cunliSalary && currentYear && currentButton) {
+      // 計算當前選擇的數據類型的平均值作為顯示值
+      let sum = 0;
+      let count = 0;
+      
+      // 遍歷所有村里數據
+      Object.keys(cunliSalary).forEach(cunliCode => {
+        if (cunliSalary[cunliCode] && 
+            cunliSalary[cunliCode][currentYear] && 
+            cunliSalary[cunliCode][currentYear][currentButton] !== undefined) {
+          sum += cunliSalary[cunliCode][currentYear][currentButton];
+          count++;
+        }
+      });
+      
+      // 計算平均值
+      if (count > 0) {
+        setCurrentValue(sum / count);
+      } else {
+        setCurrentValue(null);
+      }
+    } else {
+      setCurrentValue(null);
+    }
+  }, [cunliSalary, currentYear, currentButton]);
 
   // 預先計算投影和分辨率 - 使用 useMemo 避免重複計算
   const projectionConfig = useMemo(() => {
@@ -311,6 +342,18 @@ function Map() {
   // 只在初始渲染或JSON檔還沒下載完成時顯示載入中
   const shouldShowLoading = initialRender && (isLoading || isMapLoading);
   
+  // 獲取當前選擇的數據類型標籤
+  const getDataTypeLabel = () => {
+    switch(currentButton) {
+      case 'avg': return '平均數';
+      case 'mid': return '中位數';
+      case 'sd': return '標準差';
+      case 'mid1': return '第一分位數';
+      case 'mid3': return '第三分位數';
+      default: return '';
+    }
+  };
+  
   return (
     <>
       <div ref={mapContainerRef} className="map" id="map"></div>
@@ -322,11 +365,8 @@ function Map() {
       )}
       <div className="zoom-info">
         <div className="zoom-level">縮放級別: {Math.round(currentZoom)}</div>
-        <div className="data-type">{currentButton === 'avg' ? '平均數' : 
-                                    currentButton === 'mid' ? '中位數' : 
-                                    currentButton === 'sd' ? '標準差' : 
-                                    currentButton === 'mid1' ? '第一分位數' : 
-                                    currentButton === 'mid3' ? '第三分位數' : ''}
+        <div className="data-type">
+          {getDataTypeLabel()}: {currentValue !== null ? `${formatToTenThousand(currentValue)} 萬元` : ''}
         </div>
       </div>
     </>

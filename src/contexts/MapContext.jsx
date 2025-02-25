@@ -6,6 +6,19 @@ import * as ol from 'openlayers';
 
 const MapContext = createContext();
 
+// 格式化數值為萬元，最多取到小數第1位
+export function formatToTenThousand(value) {
+  if (value === undefined || value === null) return '';
+  // 將千元轉換為萬元（除以10）
+  const inTenThousand = value / 10;
+  // 如果是整數，不顯示小數點
+  if (inTenThousand % 1 === 0) {
+    return inTenThousand.toFixed(0);
+  }
+  // 否則顯示到小數點第1位
+  return inTenThousand.toFixed(1);
+}
+
 // 顏色映射函數 - 純函數，可以直接導出
 export function colorBar(value) {
   if (value === 0)
@@ -45,10 +58,8 @@ function getDataTypeLabel(buttonType) {
 // 格式化數值顯示
 function formatValue(value) {
   if (value === undefined || value === null) return '';
-  // 如果是標準差，保留一位小數
-  if (value < 10) return value.toFixed(1);
-  // 其他數值顯示為整數
-  return Math.round(value).toString();
+  // 轉換為萬元並格式化
+  return formatToTenThousand(value);
 }
 
 export function MapProvider({ children }) {

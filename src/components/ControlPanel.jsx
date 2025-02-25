@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useMapConfig } from '../contexts/MapContext';
+import { useMapConfig, formatToTenThousand } from '../contexts/MapContext';
 import { useHashRouter } from '../contexts/HashRouterContext';
 import './ControlPanel.css';
 
@@ -93,39 +93,39 @@ function ControlPanel() {
           <h4>圖例</h4>
           <div className="legend-item">
             <span className="legend-color" style={{ backgroundColor: 'rgba(254,232,200,0.6)' }}></span>
-            <span className="legend-label">0-300 萬</span>
+            <span className="legend-label">0-{formatToTenThousand(300)} 萬</span>
           </div>
           <div className="legend-item">
             <span className="legend-color" style={{ backgroundColor: 'rgba(253,212,158,0.6)' }}></span>
-            <span className="legend-label">300-400 萬</span>
+            <span className="legend-label">{formatToTenThousand(300)}-{formatToTenThousand(400)} 萬</span>
           </div>
           <div className="legend-item">
             <span className="legend-color" style={{ backgroundColor: 'rgba(253,187,132,0.6)' }}></span>
-            <span className="legend-label">400-500 萬</span>
+            <span className="legend-label">{formatToTenThousand(400)}-{formatToTenThousand(500)} 萬</span>
           </div>
           <div className="legend-item">
             <span className="legend-color" style={{ backgroundColor: 'rgba(252,141,89,0.6)' }}></span>
-            <span className="legend-label">500-700 萬</span>
+            <span className="legend-label">{formatToTenThousand(500)}-{formatToTenThousand(700)} 萬</span>
           </div>
           <div className="legend-item">
             <span className="legend-color" style={{ backgroundColor: 'rgba(239,101,72,0.6)' }}></span>
-            <span className="legend-label">700-900 萬</span>
+            <span className="legend-label">{formatToTenThousand(700)}-{formatToTenThousand(900)} 萬</span>
           </div>
           <div className="legend-item">
             <span className="legend-color" style={{ backgroundColor: 'rgba(215,48,31,0.6)' }}></span>
-            <span className="legend-label">900-1100 萬</span>
+            <span className="legend-label">{formatToTenThousand(900)}-{formatToTenThousand(1100)} 萬</span>
           </div>
           <div className="legend-item">
             <span className="legend-color" style={{ backgroundColor: 'rgba(179,0,0,0.6)' }}></span>
-            <span className="legend-label">1100-1300 萬</span>
+            <span className="legend-label">{formatToTenThousand(1100)}-{formatToTenThousand(1300)} 萬</span>
           </div>
           <div className="legend-item">
             <span className="legend-color" style={{ backgroundColor: 'rgba(127,0,0,0.6)' }}></span>
-            <span className="legend-label">1300-1500 萬</span>
+            <span className="legend-label">{formatToTenThousand(1300)}-{formatToTenThousand(1500)} 萬</span>
           </div>
           <div className="legend-item">
             <span className="legend-color" style={{ backgroundColor: 'rgba(64,0,0,0.6)' }}></span>
-            <span className="legend-label">1500+ 萬</span>
+            <span className="legend-label">{formatToTenThousand(1500)}+ 萬</span>
           </div>
         </div>
       </div>
