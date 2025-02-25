@@ -75,6 +75,7 @@ for (var z = 0; z < 20; ++z) {
   resolutions[z] = size / Math.pow(2, z);
   matrixIds[z] = z;
 }
+/* Commented out: These popup-related variables are defined but never used
 var container = document.getElementById('popup');
 var content = document.getElementById('popup-content');
 /* Commented out: popup-closer event handler is unused
@@ -87,6 +88,7 @@ var content = document.getElementById('popup-content');
 // };
 */
 
+/* Commented out: popup overlay is defined but never added to the map
 var popup = new ol.Overlay({
   element: container,
   autoPan: true,
@@ -94,6 +96,7 @@ var popup = new ol.Overlay({
     duration: 250
   }
 });
+*/
 
 /* Commented out: nlscMatrixIds is defined but never used
 var nlscMatrixIds = new Array(21);
@@ -241,17 +244,13 @@ var currentYear = '2022', currentButton = 'mid', currentCunliCode = '',
     mid3: 'mid3'
   }, 
   */
-  buttonKeys = {
-    avg: 'avg',
-    mid: 'mid',
-    sd: 'sd',
-    mid1: 'mid1',
-    mid3: 'mid3'
-  };
+  // Simplified: Using an array instead of an object where keys map to themselves
+  validButtons = ['avg', 'mid', 'sd', 'mid1', 'mid3'];
 
 var showCunli = function (theYear, theButton, cunliCode) {
-  if (buttonKeys[theButton]) {
-    theButton = buttonKeys[theButton];
+  // Simplified validation: Check if the button is in the valid buttons array
+  if (!validButtons.includes(theButton)) {
+    theButton = 'mid'; // Default to 'mid' if invalid
   }
   currentYear = theYear;
   currentButton = theButton;
@@ -284,18 +283,12 @@ var showCunli = function (theYear, theButton, cunliCode) {
 };
 
 function showFeature(feature) {
-  
-  
   var cunli = feature.get('COUNTYNAME') + feature.get('TOWNNAME') + feature.get('VILLNAME');
   var cunliKey = feature.get('VILLCODE');
   var tableData = [];
   var chartDataSet1 = [], chartDataSet2 = [];
   
-  
-  
   if (cunliSalary[cunliKey]) {
-    // 
-    
     for (let y in cunliSalary[cunliKey]) {
       const rowData = [y];
       for (let k in cunliSalary[cunliKey][y]) {
@@ -305,8 +298,6 @@ function showFeature(feature) {
       chartDataSet1.push(cunliSalary[cunliKey][y].mid);
       chartDataSet2.push(cunliSalary[cunliKey][y].avg);
     }
-
-    
 
     const chartData = {
       labels: Object.keys(cunliSalary[cunliKey]),
@@ -324,8 +315,6 @@ function showFeature(feature) {
       ]
     };
 
-    
-
     const event = new CustomEvent('showMapData', {
       detail: {
         title: cunli,
@@ -335,10 +324,7 @@ function showFeature(feature) {
       }
     });
 
-    
     window.dispatchEvent(event);
-  } else {
-    
   }
 
   var targetHash = '#' + currentYear + '/' + currentButton + '/' + cunliKey;
@@ -423,8 +409,6 @@ function App() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [mapData, setMapData] = useState(null);
   const [isInited, setIsInited] = useState(false);
-  
-
 
   useEffect(() => {
     if(isInited && !window.cunliSalary ){
@@ -440,26 +424,20 @@ function App() {
   }, []);
 
   useEffect(() => {
-    
     const handleMapData = (event) => {
-      
       setMapData(event.detail);
       setDialogOpen(true);
     };
 
     window.addEventListener('showMapData', handleMapData);
     return () => {
-      
       window.removeEventListener('showMapData', handleMapData);
     };
   }, []);
 
   const handleClose = () => {
-    
     setDialogOpen(false);
   };
-
-  
 
   return (
     <MapProvider>
