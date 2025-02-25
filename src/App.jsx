@@ -1,275 +1,18 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { MapProvider } from './contexts/MapContext';
 import { MapDataProvider } from './contexts/MapDataContext';
 import MapDataDialog from './components/MapDataDialog';
+import Map from './components/Map';
 import './App.css';
 import * as ol from 'openlayers';
-
-// 提取 ColorBar 函數到外部
-function colorBar(value) {
-  if (value === 0)
-    return "rgba(255,255,255,0.6)" //white
-  else if (value <= 300)
-    return "rgba(254,232,200,0.6)"
-  else if (value <= 400)
-    return "rgba(253,212,158,0.6)"
-  else if (value <= 500)
-    return "rgba(253,187,132,0.6)"
-  else if (value <= 700)
-    return "rgba(252,141,89,0.6)"
-  else if (value <= 900)
-    return "rgba(239,101,72,0.6)"
-  else if (value <= 1100)
-    return "rgba(215,48,31,0.6)"
-  else if (value <= 1300)
-    return "rgba(179,0,0,0.6)"
-  else if (value <= 1500)
-    return "rgba(127,0,0,0.6)"
-  else
-    return "rgba(64,0,0,0.6)"
-}
-
-function initOperlzyer() {
-
-var projection = ol.proj.get('EPSG:3857');
-var projectionExtent = projection.getExtent();
-var size = ol.extent.getWidth(projectionExtent) / 256;
-var resolutions = new Array(20);
-var matrixIds = new Array(20);
-for (var z = 0; z < 20; ++z) {
-  // generate resolutions and matrixIds arrays for this WMTS
-  resolutions[z] = size / Math.pow(2, z);
-  matrixIds[z] = z;
-}
-
-var stylePool = {};
-var cunliStyle = function (f) {
-  var key = f.get('VILLCODE'), count = 0;
-  if (cunliSalary[key] && cunliSalary[key][currentYear]) {
-    count = cunliSalary[key][currentYear][currentButton];
-  }
-  var fillColor = colorBar(count);
-  if (!stylePool[fillColor]) {
-    stylePool[fillColor] = new ol.style.Style({
-      stroke: new ol.style.Stroke({
-        color: 'rgba(0,0,0,0.7)',
-        width: 1
-      }),
-      fill: new ol.style.Fill({
-        color: fillColor,
-      }),
-      text: new ol.style.Text({
-        font: '14px "Open Sans", "Arial Unicode MS", "sans-serif"',
-        fill: new ol.style.Fill({
-          color: 'rgba(0,0,255,1)'
-        })
-      })
-    });
-  }
-  f.set('fillColor', fillColor);
-  var theStyle = stylePool[fillColor].clone();
-  if (countrySort[key] && countrySort[key][currentYear] && countrySort[key][currentButton]) {
-    theStyle.getText().setText(countrySort[key][currentYear][currentButton].toString());
-  }
-  return theStyle;
-}
-
-var vectorCunli = new ol.layer.Vector({
-  source: new ol.source.Vector({
-    url: 'https://kiang.github.io/taiwan_basecode/cunli/topo/20240807.json',
-    format: new ol.format.TopoJSON(),
-  }),
-  style: cunliStyle
-});
-
-var baseLayer = new ol.layer.Tile({
-  source: new ol.source.WMTS({
-    matrixSet: 'EPSG:3857',
-    format: 'image/png',
-    url: 'https://wmts.nlsc.gov.tw/wmts',
-    layer: 'EMAP',
-    tileGrid: new ol.tilegrid.WMTS({
-      origin: ol.extent.getTopLeft(projectionExtent),
-      resolutions: resolutions,
-      matrixIds: matrixIds
-    }),
-    style: 'default',
-    wrapX: true,
-    attributions: '<a href="https://maps.nlsc.gov.tw/" target="_blank">國土測繪圖資服務雲</a>'
-  }),
-  opacity: 0.5
-});
-
-var appView = new ol.View({
-  center: ol.proj.fromLonLat([120.20345985889435, 22.994906062625773]),
-  zoom: 14
-});
-
-var map = new ol.Map({
-  target: 'map',
-  layers: [baseLayer, vectorCunli],
-  view: appView
-});
-
-map.on('singleclick', function (evt) {
-  map.forEachFeatureAtPixel(evt.pixel, function (feature, layer) {
-    if (layer === vectorCunli && feature.get('VILLCODE')) {
-      showFeature(feature);
-      return true;  // 找到符合條件的 feature 後立即停止遍歷
-    }
-  }, {
-    layerFilter: function(layer) {
-      return layer === vectorCunli;
-    }
-  });
-});
-
-var geolocation = new ol.Geolocation({
-  projection: appView.getProjection()
-});
-
-geolocation.setTracking(true);
-
-var positionFeature = new ol.Feature();
-
-positionFeature.setStyle(new ol.style.Style({
-  image: new ol.style.Circle({
-    radius: 6,
-    fill: new ol.style.Fill({
-      color: '#3399CC'
-    }),
-    stroke: new ol.style.Stroke({
-      color: '#fff',
-      width: 2
-    })
-  })
-}));
-
-var geolocationCentered = false;
-geolocation.on('change:position', function () {
-  var coordinates = geolocation.getPosition();
-  if (coordinates) {
-    positionFeature.setGeometry(new ol.geom.Point(coordinates));
-    if (false === geolocationCentered) {
-      map.getView().setCenter(coordinates);
-      geolocationCentered = true;
-    }
-  }
-});
-
-new ol.layer.Vector({
-  map: map,
-  source: new ol.source.Vector({
-    features: [positionFeature]
-  })
-});
-
-var currentYear = '2022', currentButton = 'mid', currentCunliCode = '',
-  validButtons = ['avg', 'mid', 'sd', 'mid1', 'mid3'];
-
-var showCunli = function (theYear, theButton, cunliCode) {
-  // Simplified validation: Check if the button is in the valid buttons array
-  if (!validButtons.includes(theButton)) {
-    theButton = 'mid'; // Default to 'mid' if invalid
-  }
-  currentYear = theYear;
-  currentButton = theButton;
-  currentCunliCode = cunliCode;
-  if (!cunliCode) {
-    cunliCode = '';
-  }
-
-  vectorCunli.getSource().changed();
-};
-
-function showFeature(feature) {
-  var cunli = feature.get('COUNTYNAME') + feature.get('TOWNNAME') + feature.get('VILLNAME');
-  var cunliKey = feature.get('VILLCODE');
-  var tableData = [];
-  var chartDataSet1 = [], chartDataSet2 = [];
-  
-  if (cunliSalary[cunliKey]) {
-    for (let y in cunliSalary[cunliKey]) {
-      const rowData = [y];
-      for (let k in cunliSalary[cunliKey][y]) {
-        rowData.push(cunliSalary[cunliKey][y][k]);
-      }
-      tableData.push(rowData);
-      chartDataSet1.push(cunliSalary[cunliKey][y].mid);
-      chartDataSet2.push(cunliSalary[cunliKey][y].avg);
-    }
-
-    const chartData = {
-      labels: Object.keys(cunliSalary[cunliKey]),
-      datasets: [
-        {
-          label: "中位數",
-          backgroundColor: "rgb(255, 99, 132)",
-          data: chartDataSet1
-        },
-        {
-          label: "平均數",
-          backgroundColor: "rgb(132, 99, 255)",
-          data: chartDataSet2
-        }
-      ]
-    };
-
-    const event = new CustomEvent('showMapData', {
-      detail: {
-        title: cunli,
-        tableData: tableData,
-        chartData: chartData,
-        chartConfig: chartData
-      }
-    });
-
-    window.dispatchEvent(event);
-  }
-
-  var targetHash = '#' + currentYear + '/' + currentButton + '/' + cunliKey;
-  if (window.location.hash !== targetHash) {
-    window.location.hash = targetHash;
-  }
-}
-
-var cunliInitDone = false;
-
-vectorCunli.on('change', function (e) {
-  if (!cunliInitDone && vectorCunli.getSource().getState() === 'ready') {
-    cunliInitDone = true;
-    
-    // 更新村里名稱
-    vectorCunli.getSource().forEachFeature(function (f) {
-      var p = f.getProperties();
-      if (countrySort[p.VILLCODE]) {
-        countrySort[p.VILLCODE].name = p.COUNTYNAME + p.TOWNNAME + p.VILLNAME;
-      }
-    });
-
-    // 初始化顯示
-    showCunli(currentYear, currentButton);
-  }
-});
-
-}
 
 function App() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [mapData, setMapData] = useState(null);
-  const [isInited, setIsInited] = useState(false);
 
   useEffect(() => {
-    if(isInited && !window.cunliSalary ){
-      return;
-    }
+    // 設置全局 ol 對象，以便其他組件可以使用
     window.ol = ol;
-
-    setIsInited(true);
-
-    setTimeout(() => {
-      initOperlzyer();
-    });
   }, []);
 
   useEffect(() => {
@@ -289,9 +32,9 @@ function App() {
   };
 
   return (
-    <MapProvider>
-      <MapDataProvider>
-        <div id="map" className="map"></div>
+    <MapDataProvider>
+      <MapProvider>
+        <Map />
         <div id="popup" className="ol-popup">
           <a href="#" id="popup-closer" className="ol-popup-closer"></a>
           <div id="popup-content"></div>
@@ -301,8 +44,8 @@ function App() {
           onClose={handleClose}
           data={mapData}
         />
-      </MapDataProvider>
-    </MapProvider>
+      </MapProvider>
+    </MapDataProvider>
   );
 }
 
