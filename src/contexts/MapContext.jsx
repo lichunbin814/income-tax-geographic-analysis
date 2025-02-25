@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { useMapData } from './MapDataContext';
+import { useMapEvent } from './MapEventContext';
+import { useHashRouter } from './HashRouterContext';
 import * as ol from 'openlayers';
 
 const MapContext = createContext();
@@ -35,6 +37,8 @@ export function MapProvider({ children }) {
   const [currentCunliCode, setCurrentCunliCode] = useState('');
   const [map, setMap] = useState(null);
   const { cunliSalary, countrySort } = useMapData();
+  const { showMapData } = useMapEvent();
+  const { setHashValue, params } = useHashRouter();
   
   // Refs
   const mapRef = useRef(null);
@@ -99,23 +103,17 @@ export function MapProvider({ children }) {
       ]
     };
 
-    const event = new CustomEvent('showMapData', {
-      detail: {
-        title: cunli,
-        tableData: tableData,
-        chartData: chartData,
-        chartConfig: chartData
-      }
+    // 使用 MapEventContext 的 showMapData 函數，而不是 window 事件
+    showMapData({
+      title: cunli,
+      tableData: tableData,
+      chartData: chartData,
+      chartConfig: chartData
     });
-
-    window.dispatchEvent(event);
     
-    // 更新 URL hash
-    const targetHash = `#${currentYear}/${currentButton}/${cunliKey}`;
-    if (window.location.hash !== targetHash) {
-      window.location.hash = targetHash;
-    }
-  }, [cunliSalary, currentYear, currentButton]);
+    // 使用 HashRouterContext 更新 URL hash
+    setHashValue(currentYear, currentButton, cunliKey);
+  }, [cunliSalary, currentYear, currentButton, showMapData, setHashValue]);
   
   // 創建村里樣式函數 - 使用 useCallback
   const createCunliStyle = useCallback((feature) => {
@@ -158,25 +156,12 @@ export function MapProvider({ children }) {
     return theStyle;
   }, [cunliSalary, countrySort, currentYear, currentButton]);
   
-  // 解析 URL hash - 使用 useEffect
+  // 從 HashRouterContext 獲取參數 - 使用 useEffect
   useEffect(() => {
-    const parseHash = () => {
-      const hash = window.location.hash.substring(1);
-      if (hash) {
-        const parts = hash.split('/');
-        if (parts.length >= 3) {
-          showCunli(parts[0], parts[1], parts[2]);
-        }
-      }
-    };
-    
-    window.addEventListener('hashchange', parseHash);
-    parseHash();
-    
-    return () => {
-      window.removeEventListener('hashchange', parseHash);
-    };
-  }, [showCunli]);
+    if (params.year && params.button) {
+      showCunli(params.year, params.button, params.cunliCode);
+    }
+  }, [params, showCunli]);
 
   // 提供 Context 值
   const contextValue = {

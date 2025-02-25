@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useMapConfig } from '../contexts/MapContext';
 import { useMapData } from '../contexts/MapDataContext';
+import { useHashRouter } from '../contexts/HashRouterContext';
 import * as ol from 'openlayers';
 
 function Map() {
@@ -17,6 +18,7 @@ function Map() {
     cunliInitDoneRef
   } = useMapConfig();
   const { cunliSalary, countrySort } = useMapData();
+  const { params } = useHashRouter();
 
   // 初始化地圖
   useEffect(() => {
@@ -68,8 +70,9 @@ function Map() {
     });
     
     // 創建視圖
+    const defaultCenter = [121.5654, 25.0330];
     const appView = new ol.View({
-      center: ol.proj.fromLonLat([120.20345985889435, 22.994906062625773]),
+      center: ol.proj.fromLonLat(defaultCenter),
       zoom: 14
     });
     
@@ -151,8 +154,12 @@ function Map() {
           }
         });
         
-        // 初始化顯示
-        showCunli(currentYear, currentButton);
+        // 使用 URL 參數初始化顯示
+        const year = params.year || currentYear;
+        const button = params.button || currentButton;
+        const cunliCode = params.cunliCode || '';
+        
+        showCunli(year, button, cunliCode);
       }
     });
     
@@ -164,7 +171,7 @@ function Map() {
         setMap(null);
       }
     };
-  }, [cunliSalary, countrySort, currentYear, currentButton, showCunli, showFeature, createCunliStyle, vectorCunliRef, mapRef, setMap, cunliInitDoneRef]);
+  }, [cunliSalary, countrySort, currentYear, currentButton, showCunli, showFeature, createCunliStyle, vectorCunliRef, mapRef, setMap, cunliInitDoneRef, params]);
   
   return <div ref={mapContainerRef} className="map" id="map"></div>;
 }

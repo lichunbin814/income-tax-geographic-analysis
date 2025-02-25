@@ -73,7 +73,7 @@ export function MapDataProvider({ children }) {
       };
     };
 
-    fetch('fia_data_v2.json')
+    fetch('fia_data.json')
       .then(response => response.json())
       .then(data => {
         const processedData = processData(data);
