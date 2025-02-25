@@ -6,64 +6,6 @@ import './App.css';
 import * as ol from 'openlayers';
 
 function initOperlzyer() {
-  // $.ajaxSetup({ async: false });
-
-/* 
- * This data loading code is now handled in MapDataContext.jsx
- * The variables countrySort, countrySortPool, cunliListPool, and cunliSalary
- * are now loaded as global window variables from there
- */
-// let countrySort = {}, countrySortPool = {}, cunliListPool = {}, cunliSalary = {};
-// $.getJSON('fia_data.json', function (data) {
-//   cunliSalary = data;
-//   for (cunliCode in cunliSalary) {
-//     countrySort[cunliCode] = {
-//       name: ''
-//     };
-//     for (year in cunliSalary[cunliCode]) {
-//       countrySort[cunliCode][year] = {};
-//       if (!countrySortPool[year]) {
-//         countrySortPool[year] = {};
-//       }
-//       if (!cunliListPool[year]) {
-//         cunliListPool[year] = {};
-//       }
-//       for (key in cunliSalary[cunliCode][year]) {
-//         countrySort[cunliCode][year][key] = 0;
-//         if (!countrySortPool[year][key]) {
-//           countrySortPool[year][key] = {};
-//         }
-//         if (!cunliListPool[year][key]) {
-//           cunliListPool[year][key] = {};
-//         }
-//         if (!cunliListPool[year][key][cunliSalary[cunliCode][year][key]]) {
-//           cunliListPool[year][key][cunliSalary[cunliCode][year][key]] = [];
-//         }
-//         countrySortPool[year][key][cunliSalary[cunliCode][year][key]] = 0;
-//         cunliListPool[year][key][cunliSalary[cunliCode][year][key]].push(cunliCode);
-//       }
-//     }
-//   }
-//   for (year in countrySortPool) {
-//     for (key in countrySortPool[year]) {
-//       let pool = Object.keys(countrySortPool[year][key]);
-//       pool.sort(function (a, b) {
-//         return b - a;
-//       });
-//       for (let i = 0; i < pool.length; i++) {
-//         countrySortPool[year][key][pool[i]] = i + 1;
-//       }
-//     }
-//   }
-//   for (cunliCode in countrySort) {
-//     for (year in countrySort[cunliCode]) {
-//       for (key in countrySort[cunliCode][year]) {
-//         countrySort[cunliCode][year][key] = countrySortPool[year][key][cunliSalary[cunliCode][year][key]];
-//       }
-//     }
-//   }
-//   
-// });
 
 var projection = ol.proj.get('EPSG:3857');
 var projectionExtent = projection.getExtent();
@@ -75,35 +17,6 @@ for (var z = 0; z < 20; ++z) {
   resolutions[z] = size / Math.pow(2, z);
   matrixIds[z] = z;
 }
-/* Commented out: These popup-related variables are defined but never used
-var container = document.getElementById('popup');
-var content = document.getElementById('popup-content');
-/* Commented out: popup-closer event handler is unused
-// var closer = document.getElementById('popup-closer');
-
-// closer.onclick = function () {
-//   popup.setPosition(undefined);
-//   closer.blur();
-//   return false;
-// };
-*/
-
-/* Commented out: popup overlay is defined but never added to the map
-var popup = new ol.Overlay({
-  element: container,
-  autoPan: true,
-  autoPanAnimation: {
-    duration: 250
-  }
-});
-*/
-
-/* Commented out: nlscMatrixIds is defined but never used
-var nlscMatrixIds = new Array(21);
-for (var i = 0; i < 21; ++i) {
-  nlscMatrixIds[i] = i;
-}
-*/
 
 var stylePool = {};
 var cunliStyle = function (f) {
@@ -193,12 +106,6 @@ var geolocation = new ol.Geolocation({
 
 geolocation.setTracking(true);
 
-/* Commented out: Empty error handler that doesn't do anything
-geolocation.on('error', function (error) {
-  
-});
-*/
-
 var positionFeature = new ol.Feature();
 
 positionFeature.setStyle(new ol.style.Style({
@@ -234,17 +141,6 @@ new ol.layer.Vector({
 });
 
 var currentYear = '2022', currentButton = 'mid', currentCunliCode = '',
-  // cunli, // Commented out: Variable is declared but only used locally in showFeature
-  /* Commented out: valueKeys is defined but never used
-  valueKeys = {
-    avg: 'avg',
-    mid: 'mid',
-    sd: 'sd',
-    mid1: 'mid1',
-    mid3: 'mid3'
-  }, 
-  */
-  // Simplified: Using an array instead of an object where keys map to themselves
   validButtons = ['avg', 'mid', 'sd', 'mid1', 'mid3'];
 
 var showCunli = function (theYear, theButton, cunliCode) {
@@ -260,26 +156,6 @@ var showCunli = function (theYear, theButton, cunliCode) {
   }
 
   vectorCunli.getSource().changed();
-
-  document.querySelectorAll('a.btn-year').forEach(btn => {
-    if (btn.getAttribute('data-year') === currentYear) {
-      btn.classList.remove('btn-default');
-      btn.classList.add('btn-primary');
-    } else {
-      btn.classList.remove('btn-primary');
-      btn.classList.add('btn-default');
-    }
-  });
-
-  document.querySelectorAll('a.btn-play').forEach(btn => {
-    if (btn.id === currentButton) {
-      btn.classList.remove('btn-default');
-      btn.classList.add('btn-primary');
-    } else {
-      btn.classList.remove('btn-primary');
-      btn.classList.add('btn-default');
-    }
-  });
 };
 
 function showFeature(feature) {
@@ -349,7 +225,6 @@ vectorCunli.on('change', function (e) {
 
     // 初始化顯示
     showCunli(currentYear, currentButton);
-    // updateCunliList();
   }
 });
 
