@@ -27,34 +27,73 @@ function Map() {
 
   // 獲取當前選擇的數據值
   const [currentValue, setCurrentValue] = useState(null);
+  
+  // 使用 useMemo 快取轉換後的萬元資料
+  const cachedValues = useMemo(() => {
+    const cache = {};
+    
+    if (!cunliSalary) return cache;
+    
+    // 預先計算所有年份和按鈕類型的值
+    Object.keys(cunliSalary).forEach(cunliCode => {
+      if (!cache[cunliCode]) cache[cunliCode] = {};
+      
+      Object.keys(cunliSalary[cunliCode] || {}).forEach(year => {
+        if (!cache[cunliCode][year]) cache[cunliCode][year] = {};
+        
+        Object.keys(cunliSalary[cunliCode][year] || {}).forEach(button => {
+          const value = cunliSalary[cunliCode][year][button];
+          if (value !== undefined) {
+            cache[cunliCode][year][button] = value;
+          }
+        });
+      });
+    });
+    
+    return cache;
+  }, [cunliSalary]);
+  
+  // 計算當前選擇的數據類型的平均值 - 使用快取
+  const calculateAverageValue = useCallback((year, button) => {
+    if (!cunliSalary || !year || !button) return null;
+    
+    // 檢查是否已經計算過這個組合的平均值
+    const cacheKey = `${year}_${button}_avg`;
+    if (cachedValues[cacheKey] !== undefined) {
+      return cachedValues[cacheKey];
+    }
+    
+    let sum = 0;
+    let count = 0;
+    
+    Object.keys(cunliSalary).forEach(cunliCode => {
+      if (cunliSalary[cunliCode] && 
+          cunliSalary[cunliCode][year] && 
+          cunliSalary[cunliCode][year][button] !== undefined) {
+        sum += cunliSalary[cunliCode][year][button];
+        count++;
+      }
+    });
+    
+    const result = count > 0 ? sum / count : null;
+    
+    // 儲存計算結果到快取
+    cachedValues[cacheKey] = result;
+    
+    return result;
+  }, [cunliSalary, cachedValues]);
 
   // 當年份或按鈕變化時，更新當前值
   useEffect(() => {
-    if (cunliSalary && currentYear && currentButton) {
-      // 計算當前選擇的數據類型的平均值作為顯示值
-      let sum = 0;
-      let count = 0;
-      
-      // 遍歷所有村里數據
-      Object.keys(cunliSalary).forEach(cunliCode => {
-        if (cunliSalary[cunliCode] && 
-            cunliSalary[cunliCode][currentYear] && 
-            cunliSalary[cunliCode][currentYear][currentButton] !== undefined) {
-          sum += cunliSalary[cunliCode][currentYear][currentButton];
-          count++;
-        }
-      });
-      
-      // 計算平均值
-      if (count > 0) {
-        setCurrentValue(sum / count);
-      } else {
-        setCurrentValue(null);
-      }
-    } else {
-      setCurrentValue(null);
+    const value = calculateAverageValue(currentYear, currentButton);
+    setCurrentValue(value);
+    
+    // 確保地圖更新
+    if (mapRef.current && vectorCunliRef.current) {
+      vectorCunliRef.current.getSource().changed();
+      mapRef.current.render();
     }
-  }, [cunliSalary, currentYear, currentButton]);
+  }, [currentYear, currentButton, calculateAverageValue, mapRef, vectorCunliRef]);
 
   // 預先計算投影和分辨率 - 使用 useMemo 避免重複計算
   const projectionConfig = useMemo(() => {
@@ -336,6 +375,8 @@ function Map() {
     if (mapRef.current && vectorCunliRef.current) {
       // 通知向量圖層更新樣式
       vectorCunliRef.current.getSource().changed();
+      // 強制重繪地圖
+      mapRef.current.render();
     }
   }, [currentYear, currentButton]);
   

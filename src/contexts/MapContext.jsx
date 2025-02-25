@@ -94,6 +94,11 @@ export function MapProvider({ children }) {
     if (vectorCunliRef.current) {
       vectorCunliRef.current.getSource().changed();
     }
+    
+    // 強制觸發地圖重繪
+    if (mapRef.current) {
+      mapRef.current.render();
+    }
   }, []);
   
   // 顯示特定地理特徵的詳細資訊 - 使用 useCallback
@@ -167,7 +172,11 @@ export function MapProvider({ children }) {
     const villageName = feature.get('VILLNAME') || '';
     
     // 創建樣式 - 使用樣式池來提高性能
-    const styleKey = `${fillColor}_${currentButton}_${currentYear}`;
+    // 加入當前縮放級別到樣式鍵中，確保縮放時樣式更新
+    const zoom = mapRef.current ? mapRef.current.getView().getZoom() : 14;
+    const zoomLevel = Math.floor(zoom); // 使用整數縮放級別以減少樣式數量
+    const styleKey = `${fillColor}_${currentButton}_${currentYear}_${zoomLevel}`;
+    
     if (!stylePoolRef.current[styleKey]) {
       stylePoolRef.current[styleKey] = new ol.style.Style({
         stroke: new ol.style.Stroke({
@@ -198,8 +207,6 @@ export function MapProvider({ children }) {
     // 設置文字顯示 - 顯示鄉鎮名稱和數據值
     if (displayValue) {
       // 根據縮放級別決定顯示的文字內容
-      const zoom = mapRef.current ? mapRef.current.getView().getZoom() : 14;
-      
       if (zoom >= 14) {
         // 高縮放級別顯示詳細信息
         theStyle.getText().setText(`${villageName}\n${displayValue}萬`);
@@ -213,7 +220,7 @@ export function MapProvider({ children }) {
     }
     
     return theStyle;
-  }, [cunliSalary, currentYear, currentButton]);
+  }, [cunliSalary, currentYear, currentButton, mapRef]);
   
   // 從 HashRouterContext 獲取參數 - 使用 useEffect
   useEffect(() => {

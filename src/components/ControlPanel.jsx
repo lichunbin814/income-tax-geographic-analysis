@@ -25,6 +25,8 @@ function ControlPanel() {
 
   // 處理按鈕變更
   const handleButtonChange = (newButton) => {
+    if (newButton === button) return; // 避免重複觸發相同的按鈕
+    
     setButton(newButton);
     setHashValue(year, newButton, '');
     showCunli(year, newButton);
