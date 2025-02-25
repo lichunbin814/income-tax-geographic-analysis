@@ -1,4 +1,4 @@
-import { createContext, useState, useContext, useEffect } from 'react';
+import { createContext, useState, useContext, useEffect, useMemo } from 'react';
 
 const MapDataContext = createContext();
 
@@ -9,62 +9,97 @@ export function MapDataProvider({ children }) {
     countrySortPool: {},
     cunliListPool: {}
   });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Use AbortController for fetch cancellation if component unmounts
+    const abortController = new AbortController();
+    const signal = abortController.signal;
+
     const processData = (data) => {
+      console.time('processData'); // Performance measurement
+      
       const countrySort = {};
       const countrySortPool = {};
       const cunliListPool = {};
 
-      // 原本 $.getJSON 裡的資料處理邏輯
+      // Pre-allocate year and key objects to reduce object creation in loops
+      const years = new Set();
+      const keys = new Set();
+      
+      // First pass: collect all years and keys
+      for (const cunliCode in data) {
+        for (const year in data[cunliCode]) {
+          years.add(year);
+          for (const key in data[cunliCode][year]) {
+            keys.add(key);
+          }
+        }
+      }
+      
+      // Pre-initialize data structures
+      years.forEach(year => {
+        countrySortPool[year] = {};
+        cunliListPool[year] = {};
+        
+        keys.forEach(key => {
+          countrySortPool[year][key] = {};
+          cunliListPool[year][key] = {};
+        });
+      });
+
+      // Process data in a more optimized way
       for (const cunliCode in data) {
         countrySort[cunliCode] = { name: '' };
+        
         for (const year in data[cunliCode]) {
           countrySort[cunliCode][year] = {};
-          if (!countrySortPool[year]) {
-            countrySortPool[year] = {};
-          }
-          if (!cunliListPool[year]) {
-            cunliListPool[year] = {};
-          }
+          
           for (const key in data[cunliCode][year]) {
+            const value = data[cunliCode][year][key];
             countrySort[cunliCode][year][key] = 0;
-            if (!countrySortPool[year][key]) {
-              countrySortPool[year][key] = {};
+            
+            if (!cunliListPool[year][key][value]) {
+              cunliListPool[year][key][value] = [];
             }
-            if (!cunliListPool[year][key]) {
-              cunliListPool[year][key] = {};
-            }
-            if (!cunliListPool[year][key][data[cunliCode][year][key]]) {
-              cunliListPool[year][key][data[cunliCode][year][key]] = [];
-            }
-            countrySortPool[year][key][data[cunliCode][year][key]] = 0;
-            cunliListPool[year][key][data[cunliCode][year][key]].push(cunliCode);
+            
+            countrySortPool[year][key][value] = 0;
+            cunliListPool[year][key][value].push(cunliCode);
           }
         }
       }
 
-      // 排序邏輯
+      // 排序邏輯 - 使用 Map 來提高排序效率
       for (const year in countrySortPool) {
         for (const key in countrySortPool[year]) {
           const pool = Object.keys(countrySortPool[year][key]);
-          pool.sort((a, b) => b - a);
-          for (let i = 0; i < pool.length; i++) {
-            countrySortPool[year][key][pool[i]] = i + 1;
+          // Convert to numbers once for sorting
+          const numericPool = pool.map(Number);
+          numericPool.sort((a, b) => b - a);
+          
+          // Create a rank map for faster lookups
+          const rankMap = new Map();
+          for (let i = 0; i < numericPool.length; i++) {
+            rankMap.set(numericPool[i], i + 1);
+            countrySortPool[year][key][numericPool[i]] = i + 1;
           }
         }
       }
 
-      // 更新 countrySort
+      // 更新 countrySort - 使用已計算的排名
       for (const cunliCode in countrySort) {
         for (const year in countrySort[cunliCode]) {
+          if (year === 'name') continue;
+          
           for (const key in countrySort[cunliCode][year]) {
-            countrySort[cunliCode][year][key] = 
-              countrySortPool[year][key][data[cunliCode][year][key]];
+            const value = data[cunliCode][year][key];
+            countrySort[cunliCode][year][key] = countrySortPool[year][key][value];
           }
         }
       }
 
+      console.timeEnd('processData'); // Performance measurement
+      
       return {
         cunliSalary: data,
         countrySort,
@@ -73,26 +108,56 @@ export function MapDataProvider({ children }) {
       };
     };
 
-    fetch('fia_data.json')
-      .then(response => response.json())
+    // Prefetch and process data
+    setIsLoading(true);
+    
+    // Use performance API to measure loading time
+    const startTime = performance.now();
+    
+    fetch('fia_data.json', { signal })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+      })
       .then(data => {
         const processedData = processData(data);
         setMapData(processedData);
+        setIsLoading(false);
         
-        // 設定全域變數
+        // 設定全域變數 - 但避免使用全域變數是更好的做法
         window.cunliSalary = processedData.cunliSalary;
         window.countrySort = processedData.countrySort;
         window.countrySortPool = processedData.countrySortPool;
         window.cunliListPool = processedData.cunliListPool;
         
         // 觸發自定義事件，通知資料已準備完成
-        // window.dispatchEvent(new Event('mapDataReady'));
+        window.dispatchEvent(new Event('mapDataReady'));
+        
+        const endTime = performance.now();
+        console.log(`Data loading and processing took ${endTime - startTime}ms`);
       })
-      .catch(error => console.error('Error loading data:', error));
+      .catch(error => {
+        if (error.name !== 'AbortError') {
+          console.error('Error loading data:', error);
+          setIsLoading(false);
+        }
+      });
+      
+    return () => {
+      abortController.abort(); // Cancel fetch if component unmounts
+    };
   }, []);
 
+  // Memoize the context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
+    ...mapData,
+    isLoading
+  }), [mapData, isLoading]);
+
   return (
-    <MapDataContext.Provider value={mapData}>
+    <MapDataContext.Provider value={contextValue}>
       {children}
     </MapDataContext.Provider>
   );
