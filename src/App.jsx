@@ -228,32 +228,6 @@ vectorCunli.on('change', function (e) {
   }
 });
 
-/* Commented out: cunliList element doesn't exist in React components
-function updateCunliList() {
-  var salaryList = Object.keys(countrySortPool[currentYear][currentButton]).reverse();
-  var cunliListHtml = '<h1>' + currentYear + ' / ' + currentButton + '</h1>';
-  cunliListHtml += '<table class="table table-striped table-fixed">';
-  for (const k in salaryList) {
-    cunliListHtml += '<tr><td>' + salaryList[k] + '</td><td>';
-    for (const j in cunliListPool[currentYear][currentButton][salaryList[k]]) {
-      var theCode = cunliListPool[currentYear][currentButton][salaryList[k]][j];
-      cunliListHtml += '<a href="#' + currentYear + '/' + currentButton + '/' + theCode + '" class="btn-cunli-list">' + countrySort[theCode].name + '</a> ';
-    }
-    cunliListHtml += '</td></tr>';
-  }
-  cunliListHtml += '</table>';
-  
-  const cunliListElement = document.getElementById('cunliList');
-  cunliListElement.innerHTML = cunliListHtml;
-  
-  document.querySelectorAll('.btn-cunli-list').forEach(btn => {
-    btn.addEventListener('click', function() {
-      // sidebar.open('home');
-    });
-  });
-}
-*/
-
 function ColorBar(value) {
   if (value == 0)
     return "rgba(255,255,255,0.6)" //white
@@ -277,7 +251,6 @@ function ColorBar(value) {
     return "rgba(64,0,0,0.6)"
 }
 
-// var selectedFeature = false; // Commented out: Variable is declared but never used
 }
 
 function App() {
