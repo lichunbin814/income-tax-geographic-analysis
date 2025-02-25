@@ -10,8 +10,15 @@ export function MapDataProvider({ children }) {
     cunliListPool: {}
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [dataInitialized, setDataInitialized] = useState(false);
 
   useEffect(() => {
+    // 如果資料已經初始化過，就不需要再次載入
+    if (dataInitialized && mapData.cunliSalary) {
+      setIsLoading(false);
+      return;
+    }
+
     // Use AbortController for fetch cancellation if component unmounts
     const abortController = new AbortController();
     const signal = abortController.signal;
@@ -125,6 +132,7 @@ export function MapDataProvider({ children }) {
         const processedData = processData(data);
         setMapData(processedData);
         setIsLoading(false);
+        setDataInitialized(true); // 標記資料已初始化
         
         // 設定全域變數 - 但避免使用全域變數是更好的做法
         window.cunliSalary = processedData.cunliSalary;
@@ -148,13 +156,14 @@ export function MapDataProvider({ children }) {
     return () => {
       abortController.abort(); // Cancel fetch if component unmounts
     };
-  }, []);
+  }, [dataInitialized, mapData.cunliSalary]);
 
   // Memoize the context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({
     ...mapData,
-    isLoading
-  }), [mapData, isLoading]);
+    isLoading,
+    dataInitialized
+  }), [mapData, isLoading, dataInitialized]);
 
   return (
     <MapDataContext.Provider value={contextValue}>

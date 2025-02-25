@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { useMapConfig } from '../contexts/MapContext';
 import { useMapData } from '../contexts/MapDataContext';
 import { useHashRouter } from '../contexts/HashRouterContext';
@@ -7,6 +7,9 @@ import * as ol from 'openlayers';
 function Map() {
   const mapContainerRef = useRef(null);
   const [isMapLoading, setIsMapLoading] = useState(true);
+  const [initialRender, setInitialRender] = useState(true);
+  const mapInitializedRef = useRef(false); // 追蹤地圖是否已初始化
+  
   const { 
     currentYear, 
     currentButton, 
@@ -18,7 +21,7 @@ function Map() {
     setMap,
     cunliInitDoneRef
   } = useMapConfig();
-  const { cunliSalary, countrySort, isLoading } = useMapData();
+  const { cunliSalary, countrySort, isLoading, dataInitialized } = useMapData();
   const { params } = useHashRouter();
 
   // 預先計算投影和分辨率 - 使用 useMemo 避免重複計算
@@ -42,12 +45,54 @@ function Map() {
     };
   }, []);
 
+  // 當資料初始化完成後，重置初始渲染狀態
+  useEffect(() => {
+    if (dataInitialized && !isLoading && !isMapLoading) {
+      // 給一個短暫的延遲，確保地圖已經完全渲染
+      const timer = setTimeout(() => {
+        setInitialRender(false);
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [dataInitialized, isLoading, isMapLoading]);
+
+  // 更新村里名稱的輔助函數 - 使用 useCallback 避免重新創建
+  const updateVillageNames = useCallback((vectorLayer, countrySort) => {
+    console.time('updateVillageNames');
+    const features = vectorLayer.getSource().getFeatures();
+    const batchSize = 100;
+    let index = 0;
+    
+    function processBatch() {
+      const endIndex = Math.min(index + batchSize, features.length);
+      for (let i = index; i < endIndex; i++) {
+        const feature = features[i];
+        const p = feature.getProperties();
+        if (countrySort[p.VILLCODE]) {
+          countrySort[p.VILLCODE].name = p.COUNTYNAME + p.TOWNNAME + p.VILLNAME;
+        }
+      }
+      
+      index = endIndex;
+      if (index < features.length) {
+        setTimeout(processBatch, 0);
+      } else {
+        console.timeEnd('updateVillageNames');
+      }
+    }
+    
+    processBatch();
+  }, []);
+
   // 初始化地圖 - 只在組件掛載時執行一次
   useEffect(() => {
-    if (!cunliSalary || !mapContainerRef.current || mapRef.current) return;
+    // 如果地圖已經初始化過，或者資料還沒準備好，或者容器還沒準備好，則不執行
+    if (mapInitializedRef.current || !cunliSalary || !mapContainerRef.current || mapRef.current) return;
     
     console.time('mapInitialization');
     setIsMapLoading(true);
+    mapInitializedRef.current = true; // 標記地圖正在初始化
     
     // 使用預先計算的投影配置
     const { projection, projectionExtent, resolutions, matrixIds } = projectionConfig;
@@ -61,7 +106,7 @@ function Map() {
     });
     
     // 監聽向量源加載事件
-    vectorSource.on('change', () => {
+    vectorSource.once('change', () => {
       if (vectorSource.getState() === 'ready') {
         setIsMapLoading(false);
         console.timeEnd('mapInitialization');
@@ -218,50 +263,26 @@ function Map() {
       }
     });
     
-    // 清理函數
+    // 清理函數 - 只有在組件真正卸載時才清理地圖
     return () => {
       if (map) {
         clearTimeout(clickTimeout);
         map.setTarget(null);
         mapRef.current = null;
         setMap(null);
+        mapInitializedRef.current = false; // 重置初始化標記
       }
     };
-  // 只依賴於初始化所需的變量，避免不必要的重新創建
-  }, [cunliSalary, setMap, projectionConfig, createCunliStyle, showFeature, showCunli, currentYear, currentButton, params]);
+  // 只依賴於必要的變量，避免不必要的重新創建
+  }, [cunliSalary, projectionConfig]); // 移除不必要的依賴項
   
-  // 更新村里名稱的輔助函數
-  const updateVillageNames = (vectorLayer, countrySort) => {
-    console.time('updateVillageNames');
-    const features = vectorLayer.getSource().getFeatures();
-    const batchSize = 100;
-    let index = 0;
-    
-    function processBatch() {
-      const endIndex = Math.min(index + batchSize, features.length);
-      for (let i = index; i < endIndex; i++) {
-        const feature = features[i];
-        const p = feature.getProperties();
-        if (countrySort[p.VILLCODE]) {
-          countrySort[p.VILLCODE].name = p.COUNTYNAME + p.TOWNNAME + p.VILLNAME;
-        }
-      }
-      
-      index = endIndex;
-      if (index < features.length) {
-        setTimeout(processBatch, 0);
-      } else {
-        console.timeEnd('updateVillageNames');
-      }
-    }
-    
-    processBatch();
-  };
+  // 只在初始渲染或JSON檔還沒下載完成時顯示載入中
+  const shouldShowLoading = initialRender && (isLoading || isMapLoading);
   
   return (
     <>
       <div ref={mapContainerRef} className="map" id="map"></div>
-      {(isLoading || isMapLoading) && (
+      {shouldShowLoading && (
         <div className="map-loading-overlay">
           <div className="map-loading-spinner"></div>
           <div className="map-loading-text">載入地圖資料中...</div>
